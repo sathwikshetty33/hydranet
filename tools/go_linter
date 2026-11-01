@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -u
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+echo "Formatting Go files..."
+find . -type f -name '*.go' -print0 | xargs -0 -r gofmt -w
+
+status=0
+
+echo
+echo "Running go vet..."
+if ! go vet ./...; then
+	status=1
+fi
+
+echo
+echo "Running Staticcheck..."
+if ! go run honnef.co/go/tools/cmd/staticcheck@v0.7.0 ./...; then
+	status=1
+fi
+
+if [ "$status" -ne 0 ]; then
+	echo
+	echo "Lint issues remain and require manual fixes."
+	exit "$status"
+fi
+
+echo
+echo "No unresolved lint issues found."
