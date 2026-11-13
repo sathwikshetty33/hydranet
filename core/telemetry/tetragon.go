@@ -70,7 +70,12 @@ func (t *TetragonCollector) Start(ctx context.Context) error {
 		defer close(t.events)
 		defer conn.Close()
 		defer log.Print("Succesfully closed Tetragon connection.")
-		_ = t.consumeEvents(ctx, stream)
+		err = t.consumeEvents(ctx, stream)
+
+		if err := t.consumeEvents(ctx, stream); err != nil && ctx.Err() == nil {
+			log.Printf("Tetragon event stream stopped: %v", err)
+		}
+
 	}()
 
 	return nil
