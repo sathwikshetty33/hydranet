@@ -55,6 +55,7 @@ func (t *TetragonCollector) Start(ctx context.Context) error {
 		),
 	)
 	if err != nil {
+		t.resetStarted()
 		return fmt.Errorf("creating tetragon connection: %w", err)
 	}
 	log.Print("Sucessfully established Tetragon connection.")
@@ -63,6 +64,7 @@ func (t *TetragonCollector) Start(ctx context.Context) error {
 	stream, err := t.client.GetEvents(ctx, &api.GetEventsRequest{})
 	if err != nil {
 		conn.Close()
+		t.resetStarted()
 		return fmt.Errorf("subscribing to tetragon events: %w", err)
 	}
 
@@ -70,6 +72,7 @@ func (t *TetragonCollector) Start(ctx context.Context) error {
 		defer close(t.events)
 		defer conn.Close()
 		defer log.Print("Succesfully closed Tetragon connection.")
+		defer t.resetStarted()
 		err = t.consumeEvents(ctx, stream)
 
 		if err := t.consumeEvents(ctx, stream); err != nil && ctx.Err() == nil {
@@ -242,4 +245,10 @@ func (t *TetragonCollector) convertToEvent(
 			"policy":     tp.GetPolicyName(),
 		},
 	}, nil
+}
+
+func (t *TetragonCollector) resetStarted() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.started = false
 }
