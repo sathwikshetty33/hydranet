@@ -15,21 +15,21 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const socketPath = "/var/run/tetragon/tetragon.sock"
-
 type TetragonCollector struct {
-	events chan Event
-	client api.FineGuidanceSensorsClient
-	conn   *grpc.ClientConn
+	events     chan Event
+	client     api.FineGuidanceSensorsClient
+	conn       *grpc.ClientConn
+	socketPath string
 
 	// making sure we only run the collector once.
 	mu      sync.Mutex
 	started bool
 }
 
-func NewTetragonCollector() *TetragonCollector {
+func NewTetragonCollector(socketPath string) *TetragonCollector {
 	return &TetragonCollector{
-		events: make(chan Event, 1024),
+		socketPath: socketPath,
+		events:     make(chan Event, 1024),
 	}
 }
 
@@ -50,7 +50,7 @@ func (t *TetragonCollector) Start(ctx context.Context) error {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(
 			func(ctx context.Context, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+				return (&net.Dialer{}).DialContext(ctx, "unix", t.socketPath)
 			},
 		),
 	)
